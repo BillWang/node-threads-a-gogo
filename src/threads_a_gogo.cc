@@ -28,6 +28,10 @@ static typeQueue* freeJobsQueue= NULL;
 static typeQueue* freeThreadsQueue= NULL;
 
 #define kThreadMagicCookie 0x99c0ffee
+
+#define EV_DEFAULT_UC_	ev_default_loop_uc_ (),
+#define EV_P_			struct ev_loop *loop,
+
 typedef struct {
   ev_async async_watcher; //MUST be the first one
   
@@ -682,7 +686,11 @@ static Handle<Value> Create (const Arguments &args) {
     Local<Value> dispatchEvents= Script::Compile(String::New(kEvents_js))->Run()->ToObject()->CallAsFunction(thread->JSObject, 0, NULL);
     thread->dispatchEvents= Persistent<Object>::New(dispatchEvents->ToObject());
     
-    ev_async_init(&thread->async_watcher, Callback);
+//    ev_async_init(&thread->async_watcher, Callback);'
+    ((ev_watcher *)(void *)(&thread->async_watcher))->active  =	((ev_watcher *)(void *)(&thread->async_watcher))->pending = 0;
+    ((ev_watcher *)(void *)(&thread->async_watcher))->priority = 0;
+    (&thread->async_watcher)->cb = Callback;
+
     ev_async_start(EV_DEFAULT_UC_ &thread->async_watcher);
     ev_ref(EV_DEFAULT_UC);
     
